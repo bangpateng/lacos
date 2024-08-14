@@ -58,33 +58,6 @@ git clone https://git.vdb.to/cerc-io/laconicd.git
 cd laconicd
 make install
 
-# Fungsi untuk memeriksa dan memperbarui port jika diperlukan
-check_and_update_port() {
-    local default_port=$1
-    local config_file=$2
-    local new_port="${laconicd_PORT}${default_port: -2}" # Mengubah dua digit terakhir default_port
-
-    if ss -tulpen | awk '{print $5}' | grep -q ":$default_port$" ; then
-        echo -e "\e[31mPort $default_port already in use.\e[39m"
-        sleep 2
-        sed -i -e "s|:$default_port\"|:${new_port}\"|" $config_file
-        echo -e "\n\e[42mPort $default_port changed to ${new_port}.\e[0m\n"
-        sleep 2
-    fi
-}
-
-# Memeriksa dan memperbarui port
-echo "5. Checking and updating ports..." && sleep 1
-check_and_update_port 26656 $HOME/config/config.toml
-check_and_update_port 26657 $HOME/config/config.toml
-check_and_update_port 26658 $HOME/config/config.toml
-check_and_update_port 6060 $HOME/config/config.toml
-check_and_update_port 1317 $HOME/config/app.toml
-check_and_update_port 9090 $HOME/config/app.toml
-check_and_update_port 9091 $HOME/config/app.toml
-check_and_update_port 8545 $HOME/config/app.toml
-check_and_update_port 8546 $HOME/config/app.toml
-
 # Variabel default
 CHAINID=${laconicd_CHAIN_ID:-"laconic_9000-1"}
 KEYRING=${KEYRING:-"test"}
@@ -122,6 +95,7 @@ if [ "$1" == "clean" ] || [ ! -d "$HOME/.laconicd/data/blockstore.db" ]; then
       mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
   }
 
+ 
   # Mengupdate genesis.json jika diperlukan
   if [[ "$TEST_REGISTRY_EXPIRY" == "true" ]]; then
     update_genesis '.app_state["registry"]["params"]["record_rent_duration"]="60s"'
@@ -179,6 +153,37 @@ if [ "$1" == "clean" ] || [ ! -d "$HOME/.laconicd/data/blockstore.db" ]; then
 else
   echo "Using existing database at $HOME/.laconicd. To replace, run '`basename $0` clean'"
 fi
+
+# Fungsi untuk memeriksa dan memperbarui port jika diperlukan
+check_and_update_port() {
+    local default_port=$1
+    local config_file=$2
+    local new_port=$(( default_port + 1 )) # Mengubah port default
+
+    if ss -tulpen | awk '{print $5}' | grep -q ":$default_port$" ; then
+        echo -e "\e[31mPort $default_port already in use.\e[39m"
+        sleep 2
+        if [ -f "$config_file" ]; then
+            sed -i -e "s|:$default_port|:$new_port|" "$config_file"
+            echo -e "\n\e[42mPort $default_port changed to $new_port.\e[0m\n"
+        else
+            echo -e "\e[31mFile $config_file not found.\e[39m"
+        fi
+        sleep 2
+    fi
+}
+
+# Memeriksa dan memperbarui port
+echo "5. Checking and updating ports..." && sleep 1
+check_and_update_port 26656 "/root/.laconicd/config/config.toml"
+check_and_update_port 26657 "/root/.laconicd/config/config.toml"
+check_and_update_port 26658 "/root/.laconicd/config/config.toml"
+check_and_update_port 6060 "/root/.laconicd/config/config.toml"
+check_and_update_port 1317 "/root/.laconicd/config/app.toml"
+check_and_update_port 9090 "/root/.laconicd/config/app.toml"
+check_and_update_port 9091 "/root/.laconicd/config/app.toml"
+check_and_update_port 8545 "/root/.laconicd/config/app.toml"
+check_and_update_port 8546 "/root/.laconicd/config/app.toml"
 
 # Membuat file service systemd
 SERVICE_FILE=/etc/systemd/system/laconicd.service
